@@ -1,10 +1,8 @@
-# NimCalculator
-
-## Introduction
+# Introduction
 
 This is an attempt at building a calculator in nim language.
 
-### Targeted Features & Roadmap:
+## Targeted Features & Roadmap
 
 - [ ] BODMAS Capable
 - [ ] Parenthesis Support
