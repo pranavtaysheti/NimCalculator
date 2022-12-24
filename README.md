@@ -1,3 +1,5 @@
+# NimCalculator
+
 ## Introduction
 
 This is an attempt at building a calculator in nim language.
