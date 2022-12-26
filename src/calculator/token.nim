@@ -1,7 +1,7 @@
 import std / strutils
 import constants
 
-type InvalidExpressionError = object of CatchableError
+type UnexpectedTokenError = object of CatchableError
 
 type
   TermType* = enum
@@ -69,7 +69,7 @@ proc tokenizeExpression*(inputExpression: string) : seq[Term] =
 
       except InvalidNotationError:
         let invalidString = getCurrentExceptionMsg()
-        raise newException(InvalidExpressionError, invalidString)
+        raise newException(UnexpectedTokenError, invalidString)
     
     termString.add(token)
 
@@ -78,4 +78,4 @@ proc tokenizeExpression*(inputExpression: string) : seq[Term] =
 when isMainModule:
   doAssert $tokenizeExpression("22+33*42/6") == "@[22, +, 33, *, 42, /, 6]"
   doAssert $tokenizeExpression(" 22 +33*4 2/6  ") == "@[22, +, 33, *, 4, 2, /, 6]"
-  doAssertRaises(InvalidExpressionError) : discard tokenizeExpression("22**68")
+  doAssertRaises(UnexpectedTokenError) : discard tokenizeExpression("22**68")
