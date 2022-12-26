@@ -45,7 +45,7 @@ proc createTerm(termString: string, termStringType: TermStringType): Term =
 
   return newTerm
 
-proc parseExpression*(inputExpression: string) : seq[Term] =
+proc tokenizeExpression*(inputExpression: string) : seq[Term] =
   let rawExpression : string = inputExpression & ' '
   var parsedList : seq[Term]
   var termString = ""
@@ -76,6 +76,6 @@ proc parseExpression*(inputExpression: string) : seq[Term] =
   return parsedList
 
 when isMainModule:
-  doAssert $parseExpression("22+33*42/6") == "@[22, +, 33, *, 42, /, 6]"
-  doAssert $parseExpression(" 22 +33*4 2/6  ") == "@[22, +, 33, *, 4, 2, /, 6]"
-  doAssertRaises(InvalidExpressionError) : discard parseExpression("22**68")
+  doAssert $tokenizeExpression("22+33*42/6") == "@[22, +, 33, *, 42, /, 6]"
+  doAssert $tokenizeExpression(" 22 +33*4 2/6  ") == "@[22, +, 33, *, 4, 2, /, 6]"
+  doAssertRaises(InvalidExpressionError) : discard tokenizeExpression("22**68")
