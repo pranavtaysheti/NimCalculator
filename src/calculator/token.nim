@@ -1,22 +1,22 @@
-import std / strutils
-import constants
+import std / strutils #TODO: impliment parseStr myself.
+import notations
 
 type UnexpectedTokenError = object of CatchableError
 
 type
-  TermType* = enum ttNone, ttNumber, ttSymbol
+  TermType* = enum ttNone, ttNumber, ttNotation
   
   Term* = object
     case termType*: TermType
       of ttNone: discard
       of ttNumber: number*: int
-      of ttSymbol: symbol*: Symbol
+      of ttNotation: notation*: Notation
 
 proc `$`*(term: Term) : string =
   case term.termType:
     of ttNone: return ""
     of ttNumber: return $term.number
-    of ttSymbol: return $term.symbol
+    of ttNotation: return $term.notation
 
 type TermStringType = enum tsNone, tsDecimal, tsString
 
@@ -34,10 +34,10 @@ proc createTerm(termString: string, termStringType: TermStringType): Term =
       newTerm = Term(termType: ttNumber, number: num)
 
     of tsString:
-      var matchedSymbol : Symbol
+      var matchedSymbol : Notation
       try: 
         matchedSymbol = matchNotation(termString)
-        newTerm = Term(termType: ttSymbol, symbol: matchedSymbol)
+        newTerm = Term(termType: ttNotation, notation: matchedSymbol)
       except InvalidNotationError: raise
 
   return newTerm
