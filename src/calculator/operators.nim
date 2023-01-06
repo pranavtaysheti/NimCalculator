@@ -3,15 +3,20 @@ import notations
 type UndefinedOperatorError = object of CatchableError
 
 type
-  NumberType = enum ntPrimitive, ntFloat, ntComplex
+  NumberType* = enum ntNone, ntPrimitive, ntFloat, ntComplex
 
   Number* = object
     case numberType*: NumberType:
+      of ntNone: discard
       of ntPrimitive: primitive*: uint
       of ntFloat: `float`: float
       of ntComplex: 
         real:float
         imaginary: float
+
+using
+  left: Number
+  right: Number
 
 proc `$`*(number: Number) : string =
   case number.numberType:
@@ -20,23 +25,33 @@ proc `$`*(number: Number) : string =
     of ntFloat:
       return $number.`float`
     of ntComplex:
-      return $number.real & " + i" & $number.imaginary 
+      return $number.real & " + i" & $number.imaginary
+    of ntNone: discard
 
 type
-  OperationType = enum otInfixBinary, otPrefixUninary
+  OperationType* = enum otInfixBinary, otPrefixUninary
   
-  Operator* = ref OperatorObj
-  OperatorObj = object
-    notation: Notation
-    numberType: NumberType
-    precedence: int
-    supportedOperation: set[OperationType]
-    binaryOperation: proc (left: Number, right: Number) : Number
+  Operation = object of RootObj
+    case numberStage: NumberType:
+    of ntComplex:
+      precedence: uint
+    else: discard
+  
+  UninaryOperation = object of Operation
     uninaryOperation: proc (right: Number) : Number
+  BinaryOperation = object of Operation
+    binaryOperation: proc (left: Number, right: Number) : Number
 
-using
-  left: Number
-  right: Number
+  Operator* = ref object
+    notation: Notation
+    
+    case supportBinaryOperation: bool:
+    of true: binaryOperation*: BinaryOperation
+    else: discard
+    
+    case supportUninaryOperation: bool:
+    of true: uninaryOperation: UninaryOperation
+    else: discard
 
 proc addition(left, right) : Number =
   result.real = left.real + right.real
@@ -64,34 +79,47 @@ proc decimal(left, right) : Number =
     postDecimal = postDecimal/10
   result = Number(numberType: ntFloat, `float`: preDecimal + postDecimal)
 
-proc imaginary(right) : Number =
+proc turnImaginary(right) : Number =
   result = Number(numberType: ntComplex, real: 0.0, imaginary: right.`float`)
+
+proc turnPositive(right) : Number = discard
+
+proc turnNegative(right) : Number =
+  result = Number(numberType: ntFloat, `float`: -right.`float`)
 
 let operators*: seq[Operator] = @[
 
-  Operator(notation: matchNotation("+"), numberType: ntComplex, precedence: 4, 
-    supportedOperation: {otInfixBinary},
-    binaryOperation: addition),
+  Operator(notation: matchNotation("+"), 
+    supportBinaryOperation: true, binaryOperation: BinaryOperation(
+      numberStage: ntComplex, precedence: 2,binaryOperation: addition),
+    supportUninaryOperation: true, uninaryOperation: UninaryOperation(
+      numberStage: ntFloat, uninaryOperation: turnPositive)),
   
-  Operator(notation: matchNotation("-"), numberType: ntComplex, precedence: 4,
-    supportedOperation: {otInfixBinary},
-    binaryOperation: substraction),
+  Operator(notation: matchNotation("-"), 
+    supportBinaryOperation: true, binaryOperation: BinaryOperation(
+      numberStage: ntComplex, precedence: 2,binaryOperation: substraction),
+    supportUninaryOperation: true, uninaryOperation: UninaryOperation(
+      numberStage: ntFloat, uninaryOperation: turnNegative)),
 
-  Operator(notation: matchNotation("*"), numberType: ntComplex, precedence: 3,
-    supportedOperation: {otInfixBinary},
-    binaryOperation: multiplication),
+  Operator(notation: matchNotation("*"), 
+    supportBinaryOperation: true, binaryOperation: BinaryOperation(
+      numberStage: ntComplex, precedence: 2, binaryOperation: multiplication),
+    supportUninaryOperation: false),
 
-  Operator(notation: matchNotation("/"), numberType: ntComplex, precedence: 3,
-    supportedOperation: {otInfixBinary},
-    binaryOperation: division),
+  Operator(notation: matchNotation("/"), 
+    supportBinaryOperation: true, binaryOperation: BinaryOperation(
+      numberStage: ntComplex, precedence: 2, binaryOperation: division),
+    supportUninaryOperation: false),
 
-  Operator(notation: matchNotation("."), numberType: ntPrimitive, precedence: 1,
-    supportedOperation: {otInfixBinary},
-    binaryOperation: decimal),
+  Operator(notation: matchNotation("."), 
+    supportBinaryOperation: true, binaryOperation: BinaryOperation(
+      numberStage: ntPrimitive, binaryOperation: decimal),
+    supportUninaryOperation: false),
   
-  Operator(notation: matchNotation("i"), numberType: ntFloat, precedence: 2,
-    supportedOperation: {otPrefixUninary},
-    uninaryOperation: imaginary)
+  Operator(notation: matchNotation("i"), 
+    supportBinaryOperation: false,
+    supportUninaryOperation: true, uninaryOperation: UninaryOperation(
+      numberStage: ntFloat, uninaryOperation: turnImaginary))
 ]
 
 proc matchOperator*(searchTerm: Notation) : Operator =
@@ -99,6 +127,13 @@ proc matchOperator*(searchTerm: Notation) : Operator =
     if searchTerm == operator.notation:
       return operator
   raise newException(UndefinedOperatorError, $searchTerm)
+
+proc uninaryOperate*(right; operator: Operator): Number =
+  result = operator[].uninaryOperation.uninaryOperation(right)
+
+proc binaryOperate*(left, right; operator: Operator): Number =
+  result = operator[].binaryOperation.binaryOperation(left, right)
+
 
 when isMainModule:
   
@@ -110,4 +145,4 @@ when isMainModule:
   let rightPrimitive = Number(numberType: ntPrimitive, primitive: 1001)
   let decimalNumber = decimal(leftPrimitive, rightPrimitive)
   doAssert $decimalNumber == "20.1001"
-  doAssert $imaginary(decimalNumber) == "0.0 + i20.1001"
+  doAssert $turnImaginary(decimalNumber) == "0.0 + i20.1001"
