@@ -9,7 +9,7 @@ type
   Term* = object
     case termType*: TermType
       of ttNone: discard
-      of ttNumber: number*: int
+      of ttNumber: number*: uint
       of ttNotation: notation*: Notation
 
 proc `$`*(term: Term) : string =
@@ -28,9 +28,7 @@ proc createTerm(termString: string, termStringType: TermStringType): Term =
     of tsNone: newTerm = Term(termType: ttNone)
 
     of tsDecimal:
-      var num: int = 0
-      for digit in termString:
-        num = num*10 + parseInt($digit)
+      var num: uint = uint(parseInt(termString))
       newTerm = Term(termType: ttNumber, number: num)
 
     of tsString:
