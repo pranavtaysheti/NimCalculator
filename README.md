@@ -6,10 +6,10 @@ This is an attempt at building a calculator in nim language.
 
 ## Targeted Features & Roadmap
 
-- [-] BODMAS Capable
+- [x] BODMAS Capable
 - [ ] Exponential operations
 - [ ] Parenthesis Support
-- [-] Support Complex numbers
+- [x] Support Complex numbers
 - [ ] Factorials
 - [ ] CLI interface
 - [ ] Support Matrix Operations
