@@ -1,18 +1,43 @@
 import notations
-
-type UndefinedOperatorError = object of CatchableError
+ 
+type 
+  UndefinedOperatorError* = object of CatchableError
+  InvalidNumberConversionError* = object of CatchableError
+  UnsupportedOperationError* = object of CatchableError
 
 type
   NumberType* = enum ntNone, ntPrimitive, ntFloat, ntComplex
-
   Number* = object
     case numberType*: NumberType:
       of ntNone: discard
-      of ntPrimitive: primitive*: uint
+      of ntPrimitive: primitive: uint
       of ntFloat: `float`: float
       of ntComplex: 
         real:float
         imaginary: float
+
+proc toNumber*(termNumber: uint): Number =
+  return Number(numberType: ntPrimitive, primitive: termNumber)
+
+proc convertNumber*(number: Number, newNumberType: NumberType): Number =
+  
+  if ord(newNumberType) < ord(number.numberType):
+    raise newException(InvalidNumberConversionError, "Hi")
+
+  elif ord(newNumberType) == ord(number.numberType):
+    return number
+
+  else:
+    var newNumber: float = case number.numberType:
+      of ntPrimitive: float(number.primitive)
+      of ntFloat: number.`float`
+      else: 0.0 #case should not be possible
+    
+    case newNumberType:
+    of ntNone: discard #function shouldnt be called with "ntNone" parameter.
+    of ntPrimitive: discard #case should not be possible
+    of ntFloat: result = Number(numberType: ntFloat, `float`: newNumber)
+    of ntComplex: result = Number(numberType: ntComplex, real: newNumber, imaginary: 0.0)
 
 using
   left: Number
@@ -29,17 +54,13 @@ proc `$`*(number: Number) : string =
     of ntNone: discard
 
 type
-  OperationType* = enum otInfixBinary, otPrefixUninary
+  Operation* = ref object of RootObj
+    numberStage*: NumberType
+    precedence*: uint
   
-  Operation = object of RootObj
-    case numberStage: NumberType:
-    of ntComplex:
-      precedence: uint
-    else: discard
-  
-  UninaryOperation = object of Operation
+  UninaryOperation* = ref object of Operation
     uninaryOperation: proc (right: Number) : Number
-  BinaryOperation = object of Operation
+  BinaryOperation* = ref object of Operation
     binaryOperation: proc (left: Number, right: Number) : Number
 
   Operator* = ref object
@@ -50,7 +71,7 @@ type
     else: discard
     
     case supportUninaryOperation: bool:
-    of true: uninaryOperation: UninaryOperation
+    of true: uninaryOperation*: UninaryOperation
     else: discard
 
 proc addition(left, right) : Number =
@@ -113,13 +134,13 @@ let operators*: seq[Operator] = @[
 
   Operator(notation: matchNotation("."), 
     supportBinaryOperation: true, binaryOperation: BinaryOperation(
-      numberStage: ntPrimitive, binaryOperation: decimal),
+      numberStage: ntPrimitive, precedence: 1, binaryOperation: decimal),
     supportUninaryOperation: false),
   
   Operator(notation: matchNotation("i"), 
     supportBinaryOperation: false,
     supportUninaryOperation: true, uninaryOperation: UninaryOperation(
-      numberStage: ntFloat, uninaryOperation: turnImaginary))
+      numberStage: ntFloat, precedence: 1, uninaryOperation: turnImaginary))
 ]
 
 proc matchOperator*(searchTerm: Notation) : Operator =
@@ -128,11 +149,25 @@ proc matchOperator*(searchTerm: Notation) : Operator =
       return operator
   raise newException(UndefinedOperatorError, $searchTerm)
 
-proc uninaryOperate*(right; operator: Operator): Number =
-  result = operator[].uninaryOperation.uninaryOperation(right)
+proc uninaryOperation*(operator: Operator): Operation =
+  if operator.supportUninaryOperation:
+    result = operator.uninaryOperation
+  else:
+    raise newException(UnsupportedOperationError, 
+      "Uninary operation not supported.")
 
-proc binaryOperate*(left, right; operator: Operator): Number =
-  result = operator[].binaryOperation.binaryOperation(left, right)
+proc binaryOperation*(operator: Operator): Operation =
+  if operator.supportBinaryOperation:
+    result = operator.binaryOperation
+  else:
+    raise newException(UnsupportedOperationError, 
+      "Binary operation not supported.")
+
+proc uninaryOperate*(operation: UninaryOperation; right): Number =
+  result = operation[].uninaryOperation(right)
+
+proc binaryOperate*(operation: BinaryOperation; left, right): Number =
+  result = operation[].binaryOperation(left, right)
 
 
 when isMainModule:

@@ -4,34 +4,24 @@ type
   NotationType = enum ntOperator, ntParenthesis, ntIgnore
   ParenthesisType = enum ptNone, ptOpen, ptClose
 
-  Notation* = ref NotationObj
-  NotationObj = object
+  Notation* = ref object
     token: string
     case notationType: NotationType
+      of ntIgnore: discard
       of ntOperator: discard
       of ntParenthesis: parenthesisType: ParenthesisType
-      of ntIgnore: discard
-
-proc newNotation(token: string, notationType: NotationType, parenthesisType = ptNone): Notation =
-  var newObject: NotationObj
-  if notationType == ntParenthesis:
-    newObject = NotationObj(token: token, notationType: ntParenthesis, parenthesisType: parenthesisType)
-  else:
-    newObject = NotationObj(token: token, notationType: notationType)
-  new(result)
-  result[] = newObject
 
 let notations*: seq[Notation] = @[
-    newNotation(token = "+", notationType = ntOperator),
-    newNotation(token =  "-",notationType = ntOperator),
-    newNotation(token = "*", notationType = ntOperator),
-    newNotation(token = "/", notationType = ntOperator),
-    newNotation(token = "//", notationType = ntOperator),
-    newNotation(token = "(", notationType = ntParenthesis#[, parenthesisType: ptOpen]#),
-    newNotation(token = ")", notationType = ntParenthesis#[, parenthesisType: ptClose]#),
-    newNotation(token = ".", notationType = ntOperator),
-    newNotation(token = ",", notationType = ntIgnore),
-    newNotation(token = "i", notationType = ntOperator)]
+    Notation(token: "+", notationType: ntOperator),
+    Notation(token: "-",notationType: ntOperator),
+    Notation(token: "*", notationType: ntOperator),
+    Notation(token: "/", notationType: ntOperator),
+    Notation(token: "//", notationType: ntOperator),
+    Notation(token: "(", notationType: ntParenthesis, parenthesisType: ptOpen),
+    Notation(token: ")", notationType: ntParenthesis, parenthesisType: ptClose),
+    Notation(token: ".", notationType: ntOperator),
+    Notation(token: ",", notationType: ntIgnore),
+    Notation(token: "i", notationType: ntOperator)]
 
 iterator notationsStrings*() : string =
   for notation in notations:
