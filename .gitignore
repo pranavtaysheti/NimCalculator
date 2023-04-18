@@ -1,4 +1,5 @@
 .directory
 prototyping/
 *.code-workspace
+dev/
 bin/ 
